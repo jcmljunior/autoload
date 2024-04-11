@@ -41,7 +41,11 @@ func handle_load_resources(data: Dictionary) -> void:
 func _load_resources(data: Dictionary) -> void:
 	for target in data.keys():
 		if not data.get(target) is Dictionary:
-			register(target, data.get(target))
+			if not data.get(target) is GDScript:
+				continue
+
+
+			register(target, data.get(target).new())
 			continue
 
 
