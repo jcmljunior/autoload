@@ -1,55 +1,57 @@
-class_name Autoload extends Object
+class_name AutoloadManager extends Object
 
 
-const data := {
-	#"redux": preload("res://features/counter/scripts/counter_reducers.gd"),
-	"counter": {
-		"constants": preload("res://features/counter/scripts/counter_constants.gd"),
-		"actions": preload("res://features/counter/scripts/counter_actions.gd"),
-		"reducers": preload("res://features/counter/scripts/counter_reducers.gd")
-	}
-}
+var get_it: GetIt
 
 
-var default := func(get_it: Dictionary) -> Dictionary:
-	var autoload := func(store: Dictionary) -> void:
-		var cache := {}
-
-		for target in data:
-			cache[target] = {}
+const resources := {}
 
 
-			if data.get(target) is Dictionary:
-				for item in data.get(target):
-					if not data.get(target).get(item) is GDScript:
-						continue
+func _init(cache: GetIt) -> void:
+	cache.register("autoload", GetIt.new())
+	get_it = cache.get_store_item("autoload").get("value")
+
+	handle_load_resources(resources)
 
 
-					cache[target][item] = data.get(target).get(item).new()
+func register(name: String, value: Variant) -> void:
+	get_it.register(name, value)
 
 
-				store.get("register").call(target, cache.get(target))
-				cache = {}
-
-				return
+func unregister(name: String) -> void:
+	get_it.unregister(name)
 
 
-			store.get("register").call(target, data.get(target).new())
-			cache = {}
+func get_store_item(name: String) -> Variant:
+	return get_it.get_store_item(name)
 
 
-	var handle_autoload := func() -> void:
-		if not get_it.get("get_store_item").call("autoload").size():
-			get_it.get("register").call("autoload", [])
+func get_store_list() -> Array:
+	return get_it.get_store_list()
 
 
-		return autoload.call(GetIt.get_instance.call(get_it.get("get_store_item").call("autoload").get("value")))
+func handle_load_resources(data: Dictionary) -> void:
+	if not data.size():
+		return
 
 
-	return {
-		"handle_autoload": handle_autoload,
-	}
+	_load_resources(data)
 
 
-var get_instance := func(get_it: Dictionary) -> Dictionary:
-	return default.call(get_it)
+func _load_resources(data: Dictionary) -> void:
+	for target in data.keys():
+		if not data.get(target) is Dictionary:
+			register(target, data.get(target))
+			continue
+
+
+		if not data.get(target).size():
+			return
+
+
+		for i in data.get(target):
+			if data.get(target)[i] is Dictionary:
+				continue
+
+
+			register(target, data.get(target)[i])
